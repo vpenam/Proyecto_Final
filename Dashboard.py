@@ -1,9 +1,10 @@
+%%writefile streamlit_dashboard.py
+
 import streamlit as st
 import plotly.express as px
 import base64
 import os
 import pandas as pd
-
 
 st.set_page_config(layout="wide", page_title="Dashboard de Presentación")
 
@@ -31,6 +32,7 @@ IMAGE_PATHS = {
 
 INTERACTIVE_HTML_PATH = "grafico7_evolucion_hurtos_interactivo.html"
 GEOGRAPHIC_DATA_PATH = "Region_Departamentos_y_municipios_de_Colombia.csv"
+CLUSTERING_DATA_PATH = "municipios_clustering_20260316_123316.csv" # Nueva ruta para datos de clustering
 
 
 st.sidebar.header("Navegación")
@@ -40,7 +42,8 @@ page = st.sidebar.radio("Ir a", [
     "Análisis de Modalidades/Vehículos",
     "Eficiencia y Capturas",
     "Evolución Interactivo", # Se mantiene por si se quiere añadir después
-    "Datos Geográficos" # Se mantiene por si se quiere añadir después
+    "Datos Geográficos", # Se mantiene por si se quiere añadir después
+    "Análisis de Clustering Geográfico" # Nueva sección
 ])
 
 if page == "Introducción":
@@ -100,29 +103,47 @@ elif page == "Datos Geográficos":
         st.subheader("Potencial de Visualización Geográfica con Plotly")
         st.write("El archivo `Region_Departamentos_y_municipios_de_Colombia.csv` proporciona la estructura geográfica de Colombia.")
         st.write("Actualmente, este archivo contiene `REGION`, `DEPARTAMENTO`, `MUNICIPIO`, entre otros, pero no incluye columnas de `Latitud` y `Longitud` para una visualización directa en un mapa interactivo usando `st.map()` o `plotly.express` con puntos específicos.")
-        st.write("Si tuvieras datos de hurtos agregados por `DEPARTAMENTO` o `MUNICIPIO` y un archivo GeoJSON de las divisiones administrativas de Colombia, podrías usar `plotly.express` para crear mapas coropletas interactivos, mostrando la intensidad de los hurtos por región geográfica. Por ejemplo:")
-
-        st.code('''
-# Ejemplo conceptual de cómo usar Plotly para un mapa de calor (coropletas)
-# Esto requeriría:
-# 1. Datos de hurtos agregados por DEPARTAMENTO/MUNICIPIO (ej. df_hurtos_agregados)
-# 2. Un archivo GeoJSON con la geometría de los departamentos/municipios.
-
-# import plotly.express as px
-# fig = px.choropleth(
-#     df_hurtos_agregados,  # DataFrame con datos de hurtos y la columna para unir (e.g., 'DEPARTAMENTO')
-#     geojson=geojson_data, # Cargar un archivo GeoJSON de Colombia
-#     locations='DEPARTAMENTO', # Columna en df_hurtos_agregados que coincide con el GeoJSON
-#     featureidkey='properties.NOMBRE_DEPARTAMENTO', # Clave para unir en el GeoJSON
-#     color='Total_Hurtos',     # Columna para el color del mapa (ej. número de hurtos)
-#     hover_name='DEPARTAMENTO', # Información al pasar el ratón
-#     title='Hurtos por Departamento en Colombia (Interactivo con Plotly)',
-#     color_continuous_scale='Viridis'
-# )
-# st.plotly_chart(fig)
-''', language='python')
-        st.info("Para este dashboard, estamos mostrando las primeras filas del dataset geográfico. Si tienes los datos de hurtos y GeoJSON, podemos adaptar esto para un mapa interactivo con Plotly.")
+        st.info("Mostrando las primeras filas del dataset geográfico.")
         st.dataframe(df_geo.head())
+
+    else:
+        st.error(f"Archivo CSV de datos geográficos no encontrado: {GEOGRAPHIC_DATA_PATH}")
+
+elif page == "Análisis de Clustering Geográfico":
+    st.header("Análisis de Clustering de Municipios")
+    if os.path.exists(CLUSTERING_DATA_PATH):
+        df_clustering = pd.read_csv(CLUSTERING_DATA_PATH)
+        st.write("Este dataset contiene información de municipios, incluyendo latitud, longitud y métricas de hurtos y eficiencia policial, categorizados por clusters.")
+
+        # Mapa interactivo con Plotly Express
+        st.subheader("Mapa Interactivo de Municipios por Hurto Promedio")
+
+        # Asegurarse de que las columnas de latitud y longitud sean numéricas
+        df_clustering['latitud'] = pd.to_numeric(df_clustering['latitud'], errors='coerce')
+        df_clustering['longitud'] = pd.to_numeric(df_clustering['longitud'], errors='coerce')
+        df_clustering.dropna(subset=['latitud', 'longitud'], inplace=True)
+
+        fig = px.scatter_mapbox(
+            df_clustering,
+            lat="latitud",
+            lon="longitud",
+            color="hurtos_totales_promedio", # Colorear por hurtos promedio
+            size="hurtos_totales_promedio",  # Tamaño del punto por hurtos promedio
+            hover_name="Municipio",
+            hover_data=["Departamento", "tasa_recuperacion", "tasa_captura", "cluster_kmeans_geo1_robusto_limpio_label"],
+            color_continuous_scale=px.colors.sequential.Plasma,
+            zoom=4,
+            height=600,
+            title="Municipios de Colombia con Hurtos Promedio (Clustering)"
+        )
+        fig.update_layout(mapbox_style="open-street-map")
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.subheader("Primeras filas del dataset de Clustering")
+        st.dataframe(df_clustering.head())
+
+    else:
+        st.error(f"Archivo CSV de clustering no encontrado: {CLUSTERING_DATA_PATH}")
 
     else:
         st.error(f"Archivo CSV de datos geográficos no encontrado: {GEOGRAPHIC_DATA_PATH}")
