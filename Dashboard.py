@@ -1,7 +1,9 @@
-import pandas as pd
 import streamlit as st
+import plotly.express as px
 import base64
 import os
+import pandas as pd
+
 
 st.set_page_config(layout="wide", page_title="Dashboard de Presentación")
 
@@ -95,12 +97,32 @@ elif page == "Datos Geográficos":
         df_geo = pd.read_csv(GEOGRAPHIC_DATA_PATH)
         st.dataframe(df_geo)
 
-        st.subheader("Visualización Simple de Datos Geográficos")
-        # Un ejemplo si tuviera columnas de latitud y longitud
-        if 'Latitud' in df_geo.columns and 'Longitud' in df_geo.columns:
-            st.map(df_geo, latitude='Latitud', longitude='Longitud')
-        else:
-            st.info("El archivo CSV no contiene columnas 'Latitud' y 'Longitud' para una visualización directa en un mapa de Streamlit. Mostrando las primeras filas.")
-            st.dataframe(df_geo.head())
+        st.subheader("Potencial de Visualización Geográfica con Plotly")
+        st.write("El archivo `Region_Departamentos_y_municipios_de_Colombia.csv` proporciona la estructura geográfica de Colombia.")
+        st.write("Actualmente, este archivo contiene `REGION`, `DEPARTAMENTO`, `MUNICIPIO`, entre otros, pero no incluye columnas de `Latitud` y `Longitud` para una visualización directa en un mapa interactivo usando `st.map()` o `plotly.express` con puntos específicos.")
+        st.write("Si tuvieras datos de hurtos agregados por `DEPARTAMENTO` o `MUNICIPIO` y un archivo GeoJSON de las divisiones administrativas de Colombia, podrías usar `plotly.express` para crear mapas coropletas interactivos, mostrando la intensidad de los hurtos por región geográfica. Por ejemplo:")
+
+        st.code('''
+# Ejemplo conceptual de cómo usar Plotly para un mapa de calor (coropletas)
+# Esto requeriría:
+# 1. Datos de hurtos agregados por DEPARTAMENTO/MUNICIPIO (ej. df_hurtos_agregados)
+# 2. Un archivo GeoJSON con la geometría de los departamentos/municipios.
+
+# import plotly.express as px
+# fig = px.choropleth(
+#     df_hurtos_agregados,  # DataFrame con datos de hurtos y la columna para unir (e.g., 'DEPARTAMENTO')
+#     geojson=geojson_data, # Cargar un archivo GeoJSON de Colombia
+#     locations='DEPARTAMENTO', # Columna en df_hurtos_agregados que coincide con el GeoJSON
+#     featureidkey='properties.NOMBRE_DEPARTAMENTO', # Clave para unir en el GeoJSON
+#     color='Total_Hurtos',     # Columna para el color del mapa (ej. número de hurtos)
+#     hover_name='DEPARTAMENTO', # Información al pasar el ratón
+#     title='Hurtos por Departamento en Colombia (Interactivo con Plotly)',
+#     color_continuous_scale='Viridis'
+# )
+# st.plotly_chart(fig)
+''', language='python')
+        st.info("Para este dashboard, estamos mostrando las primeras filas del dataset geográfico. Si tienes los datos de hurtos y GeoJSON, podemos adaptar esto para un mapa interactivo con Plotly.")
+        st.dataframe(df_geo.head())
+
     else:
         st.error(f"Archivo CSV de datos geográficos no encontrado: {GEOGRAPHIC_DATA_PATH}")
