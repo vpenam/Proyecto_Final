@@ -142,6 +142,3 @@ elif page == "Análisis de Clustering Geográfico":
 
     else:
         st.error(f"Archivo CSV de clustering no encontrado: {CLUSTERING_DATA_PATH}")
-
-    else:
-        st.error(f"Archivo CSV de datos geográficos no encontrado: {GEOGRAPHIC_DATA_PATH}")
